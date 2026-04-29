@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+# Parses raw data and sets up telemetry dictionary
 def parse_telemetry(data_string):
     try:
         parts = data_string.split("|")
@@ -30,11 +31,14 @@ def main():
         "2026-04-29T10:00:01|500|150|99",
         "2026-04-29T10:00:02|1200|300|98",
         "2026-04-29T10:00:03|2500|500|97",
-        "2026-04-29T10:00:04|BAD_DATA_PACKET", # This tests error handling!
+        "2026-04-29T10:00:04|NO DATA FOUND", # This tests error handling!
         "2026-04-29T10:00:05|5000|800|95"
     ]
 
     print(f"--- Initiating Log Processing: {len(flight_log)} Packets Found ---")
+
+    total_altitude = 0
+    valid_packet_count = 0
 
     # The Loop: 'packet' is a temporary variable for the current item
     for packet in flight_log:
@@ -43,9 +47,17 @@ def main():
         if result:
             # If data is valid, print the result
             print(f"Time: {result['timestamp']} | Alt: {result['altitude_ft']}ft")
+
+            # If data is valid, update total altitude and valid packet count
+            total_altitude += result['altitude_ft']
+            valid_packet_count += 1
+
         else:
             # If parse_telemetry returned None (due to an error), we skip it
             print("System Alert: Skipping corrupted packet...")
+
+    average_altitude_ft = total_altitude/valid_packet_count
+    print(f"Average altitude: {average_altitude_ft}ft")
             
 if __name__ == "__main__":
     main()
