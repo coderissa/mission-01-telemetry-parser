@@ -2,6 +2,15 @@
 
 # Parses raw data and sets up telemetry dictionary
 def parse_telemetry(data_string):
+    """
+    Parses a pipe-delimited telemetry string into a dictionary.
+    
+    Args:
+        data_string (str): A string in 'ISO8601|Alt|Vel|Fuel' format.
+        
+    Returns:
+        dict: Parsed telemetry with unit conversions, or None if corrupted.
+    """
     try:
         parts = data_string.split("|")
         
@@ -24,6 +33,11 @@ def parse_telemetry(data_string):
     except ValueError:
         print("[ERROR] Telemetry Packet Corrupted: Non-numeric data in numeric field.")
         return None
+
+def print_mission_summary(total_alt, count):
+    average_altitude_ft = total_alt / count
+    print(f"Average altitude: {average_altitude_ft}ft")
+
 
 def main():
     # A list representing a stream of incoming satellite data
@@ -56,8 +70,7 @@ def main():
             # If parse_telemetry returned None (due to an error), we skip it
             print("System Alert: Skipping corrupted packet...")
 
-    average_altitude_ft = total_altitude/valid_packet_count
-    print(f"Average altitude: {average_altitude_ft}ft")
-            
+    print_mission_summary(total_altitude, valid_packet_count)
+                
 if __name__ == "__main__":
     main()
