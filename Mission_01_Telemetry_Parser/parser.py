@@ -16,6 +16,7 @@ def parse_telemetry(data_string):
         }
         return telemetry
 
+    # Error handling - missing packets/corrupted data
     except IndexError:
         print("[ERROR] Telemetry Packet Corrupted: Missing data fields.")
         return None
@@ -24,23 +25,27 @@ def parse_telemetry(data_string):
         return None
 
 def main():
-    # TEST 1: Perfect Data
-    print("--- Testing Mission Nominal Data ---")
-    raw_data = "2026-04-28T09:00:00|42000|7500|88"
-    result = parse_telemetry(raw_data)
-    if result:
-        print(f"Altitude: {result['altitude_m']}m | Fuel: {result['fuel_percent']}%")
+    # A list representing a stream of incoming satellite data
+    flight_log = [
+        "2026-04-29T10:00:01|500|150|99",
+        "2026-04-29T10:00:02|1200|300|98",
+        "2026-04-29T10:00:03|2500|500|97",
+        "2026-04-29T10:00:04|BAD_DATA_PACKET", # This tests error handling!
+        "2026-04-29T10:00:05|5000|800|95"
+    ]
 
-    # TEST 2: Broken Data (Missing the fuel field)
-    print("\n--- Testing Corrupted Data ---")
-    broken_data = "2026-04-28T09:00:00|42000|7500|abc" 
-    parse_telemetry(broken_data)
+    print(f"--- Initiating Log Processing: {len(flight_log)} Packets Found ---")
 
-    # Checking conversion from m to feet
-    print("\n--- Feet and Meters ---")
-    if result:
-        print(f"Altitude in meters: {result['altitude_m']}m | Altitude in feet: {result['altitude_ft']}ft")
-    
-
+    # The Loop: 'packet' is a temporary variable for the current item
+    for packet in flight_log:
+        result = parse_telemetry(packet)
+        
+        if result:
+            # If data is valid, print the result
+            print(f"Time: {result['timestamp']} | Alt: {result['altitude_ft']}ft")
+        else:
+            # If parse_telemetry returned None (due to an error), we skip it
+            print("System Alert: Skipping corrupted packet...")
+            
 if __name__ == "__main__":
     main()
