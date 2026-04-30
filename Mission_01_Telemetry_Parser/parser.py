@@ -1,51 +1,47 @@
 #!/usr/bin/env python3
 
-# Parses raw data and sets up telemetry dictionary
+from pydantic import BaseModel, Field, ValidationError
+
+class TelemetryPacket(BaseModel):
+    timestamp: str
+    altitude_m: float = Field(ge=0)
+    velocity_ms: float
+    fuel_level: float = Field(ge=0, le=100)
+
 def parse_telemetry(data_string):
-    """
-    Parses a pipe-delimited telemetry string into a dictionary.
-    
-    Args:
-        data_string (str): A string in 'ISO8601|Alt|Vel|Fuel' format.
-        
-    Returns:
-        dict: Parsed telemetry with unit conversions, or None if corrupted.
-    """
     try:
         parts = data_string.split("|")
         
-        alt_m = int(parts[1])
-        alt_ft = round(alt_m * 3.28, 2)
-        
+        # Dictionary where keys match the Class attributes exactly
         telemetry = {
             "timestamp": parts[0],
-            "altitude_m": int(parts[1]),
-            "altitude_ft": alt_ft,
-            "velocity_ms": int(parts[2]),
-            "fuel_percent": int(parts[3])
+            "altitude_m": parts[1],
+            "velocity_ms": parts[2],
+            "fuel_level": parts[3] 
         }
-        return telemetry
 
-    # Error handling - missing packets/corrupted data
-    except IndexError:
-        print("[ERROR] Telemetry Packet Corrupted: Missing data fields.")
-        return None
-    except ValueError:
-        print("[ERROR] Telemetry Packet Corrupted: Non-numeric data in numeric field.")
+        # The '**' unpacks the dict into the Class constructor
+        validated_packet = TelemetryPacket(**telemetry)
+
+        # We return the object itself
+        return validated_packet
+
+    except (IndexError, ValueError, ValidationError):
         return None
 
 def print_mission_summary(total_alt, count):
-    average_altitude_ft = total_alt / count
-    print(f"Average altitude: {average_altitude_ft}ft")
-
+    if count > 0:
+        average_altitude_ft = total_alt / count
+        print(f"Average altitude: {average_altitude_ft:.2f}ft")
+    else:
+        print("No valid packets to average.")
 
 def main():
-    # A list representing a stream of incoming satellite data
     flight_log = [
         "2026-04-29T10:00:01|500|150|99",
         "2026-04-29T10:00:02|1200|300|98",
         "2026-04-29T10:00:03|2500|500|97",
-        "2026-04-29T10:00:04|NO DATA FOUND", # This tests error handling!
+        "2026-04-29T10:00:04|NO DATA FOUND",
         "2026-04-29T10:00:05|5000|800|95"
     ]
 
@@ -54,20 +50,19 @@ def main():
     total_altitude = 0
     valid_packet_count = 0
 
-    # The Loop: 'packet' is a temporary variable for the current item
     for packet in flight_log:
         result = parse_telemetry(packet)
         
         if result:
-            # If data is valid, print the result
-            print(f"Time: {result['timestamp']} | Alt: {result['altitude_ft']}ft")
+            # IMPORTANT: Use .attribute notation, not ['key']
+            # We do the unit conversion here in the logic layer
+            alt_ft = result.altitude_m * 3.28
+            
+            print(f"Time: {result.timestamp} | Alt: {alt_ft:.2f}ft")
 
-            # If data is valid, update total altitude and valid packet count
-            total_altitude += result['altitude_ft']
+            total_altitude += alt_ft
             valid_packet_count += 1
-
         else:
-            # If parse_telemetry returned None (due to an error), we skip it
             print("System Alert: Skipping corrupted packet...")
 
     print_mission_summary(total_altitude, valid_packet_count)
