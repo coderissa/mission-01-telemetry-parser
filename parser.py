@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
-
+import os
+from dotenv import load_dotenv
 from pydantic import BaseModel, Field, ValidationError
+
+load_dotenv()
+mission_id = os.getenv("MISSION_ID", "UNKNOWN-MISSION")
 
 class TelemetryPacket(BaseModel):
     timestamp: str
@@ -45,7 +49,7 @@ def main():
         "2026-04-29T10:00:05|5000|800|95"
     ]
 
-    print(f"--- Initiating Log Processing: {len(flight_log)} Packets Found ---")
+    print(f"--- Initiating Log Processing for Mission: {mission_id} ---")
 
     total_altitude = 0
     valid_packet_count = 0
@@ -54,7 +58,6 @@ def main():
         result = parse_telemetry(packet)
         
         if result:
-            # IMPORTANT: Use .attribute notation, not ['key']
             # We do the unit conversion here in the logic layer
             alt_ft = result.altitude_m * 3.28
             
